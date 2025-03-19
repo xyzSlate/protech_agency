@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
-from .models import Property, Appointment
-from .forms import PropertyForm,  AppointmentForm
+from .models import Property, Appointment, Agent
+from .forms import PropertyForm,  AppointmentForm, AgentForm
 
 # Admin Login
 def admin_login(request):
@@ -100,5 +100,49 @@ def book_appointment(request):
 
 def appointment_success(request):
     return render(request, 'appointment_success.html')
+
+
+@login_required
+def agent_list(request):
+    agents = Agent.objects.all()
+    return render(request, 'agent_list.html', {'agents': agents})
+
+# Create a new agent
+
+def add_agent(request):
+    if request.method == 'POST':
+        form = AgentForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('agent_list')
+    else:
+        form = AgentForm()
+    return render(request, 'agent_form.html', {'form': form})
+
+@login_required
+# Update an agent
+def update_agent(request, agent_id):
+    agent = get_object_or_404(Agent, id=agent_id)
+    if request.method == 'POST':
+        form = AgentForm(request.POST, request.FILES, instance=agent)
+        if form.is_valid():
+            form.save()
+            return redirect('agent_list')
+    else:
+        form = AgentForm(instance=agent)
+    return render(request, 'agent_form.html', {'form': form})
+
+@login_required
+# Delete an agent
+def delete_agent(request, agent_id):
+    agent = get_object_or_404(Agent, id=agent_id)
+    if request.method == 'POST':
+        agent.delete()
+        return redirect('agent_list')
+    return render(request, 'agent_confirm_delete.html', {'agent': agent})
+
+def admin_manage_agents(request):
+    agents = Agent.objects.all()
+    return render(request, 'admin_manage_agents.html', {'agents': agents})
 
 

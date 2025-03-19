@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.urls import path
 from .views import admin_login, admin_dashboard, admin_logout, delete_property, add_property, edit_property
 from .views import admin_appointments, book_appointment, appointment_success
+from .views import agent_list, add_agent, update_agent, delete_agent, admin_manage_agents
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', admin_login, name='admin_login'),
@@ -14,5 +15,9 @@ urlpatterns = [
     path('admin-appointments/', admin_appointments, name='admin_appointments'),
     path('book-appointment/', book_appointment, name='book_appointment'),
     path('appointment-success/', appointment_success, name='appointment_success'),
-
+    path('agents/', agent_list, name='agent_list'),
+    path('agents/add/', add_agent, name='add_agent'),
+    path('agents/update/<int:agent_id>/', update_agent, name='update_agent'),
+    path('agents/delete/<int:agent_id>/', delete_agent, name='delete_agent'),
+    path('admin/agents/', admin_manage_agents, name='admin_manage_agents'),
 ]

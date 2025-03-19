@@ -1,5 +1,5 @@
 from django import forms
-from .models import Property, Appointment
+from .models import Property, Appointment, Agent
 
 
 class PropertyForm(forms.ModelForm):
@@ -17,3 +17,14 @@ class AppointmentForm(forms.ModelForm):
             'time': forms.TimeInput(attrs={'type': 'time'}),
             'message': forms.Textarea(attrs={'rows': 3}),
         }
+
+
+class AgentForm(forms.ModelForm):
+    class Meta:
+        model = Agent
+        fields = ['name', 'email', 'phone', 'profile_picture']
+
+    def __init__(self, *args, **kwargs):
+        super(AgentForm, self).__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs.update({'class': 'form-control'})
