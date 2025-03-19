@@ -1,4 +1,4 @@
-
+from realestate import views
 from django.contrib import admin
 from django.urls import path
 from .views import admin_login, admin_dashboard, admin_logout, delete_property, add_property, edit_property
@@ -20,4 +20,12 @@ urlpatterns = [
     path('agents/update/<int:agent_id>/', update_agent, name='update_agent'),
     path('agents/delete/<int:agent_id>/', delete_agent, name='delete_agent'),
     path('admin/agents/', admin_manage_agents, name='admin_manage_agents'),
+    path('agents/', agent_list, name='agent_list'),
+
+    path('pay/', views.pay, name='pay'),
+
+    path('stk/', views.stk, name='stk'),
+    path('token/', views.token, name='token'),
+    path('transactions/', views.transactions_list, name='transactions'),
+
 ]

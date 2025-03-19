@@ -4,6 +4,23 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from .models import Property, Appointment, Agent
 from .forms import PropertyForm,  AppointmentForm, AgentForm
+import json
+
+import requests
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.http import HttpResponse
+from requests.auth import HTTPBasicAuth
+
+from realestate.mpesa import MpesaAccessToken, LipanaMpesaPpassword
+
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.models import User
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import *
+
+
 
 # Admin Login
 def admin_login(request):
@@ -83,16 +100,12 @@ def admin_appointments(request):
     return render(request, 'admin_appointments.html', {'appointments': appointments})
 
 
-
-
-
-
 def book_appointment(request):
     if request.method == "POST":
         form = AppointmentForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('appointment_success')  # Redirect to success page
+            return redirect('success_page')  # Change to your actual success page
     else:
         form = AppointmentForm()
 
@@ -103,21 +116,21 @@ def appointment_success(request):
 
 
 @login_required
-def agent_list(request):
-    agents = Agent.objects.all()
-    return render(request, 'agent_list.html', {'agents': agents})
-
-# Create a new agent
-
 def add_agent(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = AgentForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
-            return redirect('agent_list')
+            return redirect('agent_list')  # Redirect to agent list page
     else:
         form = AgentForm()
+
     return render(request, 'agent_form.html', {'form': form})
+
+
+def agent_list(request):
+    agents = Agent.objects.all()
+    return render(request, 'agent_list.html', {'agents': agents})
 
 @login_required
 # Update an agent
@@ -146,3 +159,69 @@ def admin_manage_agents(request):
     return render(request, 'admin_manage_agents.html', {'agents': agents})
 
 
+
+
+
+
+def token(request):
+    consumer_key = '77bgGpmlOxlgJu6oEXhEgUgnu0j2WYxA'
+    consumer_secret = 'viM8ejHgtEmtPTHd'
+    api_URL = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
+
+    r = requests.get(api_URL, auth=HTTPBasicAuth(
+        consumer_key, consumer_secret))
+    mpesa_access_token = json.loads(r.text)
+    validated_mpesa_access_token = mpesa_access_token["access_token"]
+
+    return render(request, 'token.html', {"token":validated_mpesa_access_token})
+
+def pay(request):
+   return render(request, 'pay.html')
+
+
+def stk(request):
+    if request.method == "POST":
+        phone = request.POST['phone']
+        amount = request.POST['amount']
+        access_token = MpesaAccessToken.validated_mpesa_access_token
+        api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+        headers = {"Authorization": "Bearer %s" % access_token}
+        request_data = {
+            "BusinessShortCode": LipanaMpesaPpassword.Business_short_code,
+            "Password": LipanaMpesaPpassword.decode_password,
+            "Timestamp": LipanaMpesaPpassword.lipa_time,
+            "TransactionType": "CustomerPayBillOnline",
+            "Amount": amount,
+            "PartyA": phone,
+            "PartyB": LipanaMpesaPpassword.Business_short_code,
+            "PhoneNumber": phone,
+            "CallBackURL": "https://sandbox.safaricom.co.ke/mpesa/callback",
+            "AccountReference": "Medilab",
+            "TransactionDesc": "Appointment"
+        }
+        response = requests.post(api_url, json=request_data, headers=headers)
+
+        response_data = response.json()
+        transaction_id = response_data.get("CheckoutRequestID", "N/A")
+        result_code = response_data.get("ResponseCode", "1")  # 0 is success, 1 is failure
+
+        if result_code == "0":
+            # Only save transaction if it was successful
+            transaction = Transaction(
+                phone_number=phone,
+                amount=amount,
+                transaction_id=transaction_id,
+                status="Success"
+            )
+            transaction.save()
+
+            return HttpResponse(f"Transaction ID: {transaction_id}, Status: Success")
+        else:
+            return HttpResponse(f"Transaction Failed. Error Code: {result_code}")
+
+
+
+
+def transactions_list(request):
+    transactions = Transaction.objects.all().order_by('-date')
+    return render(request, 'transactions.html', {'transactions': transactions})
