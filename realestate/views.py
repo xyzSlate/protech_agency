@@ -19,6 +19,9 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import *
+from django.shortcuts import render
+
+
 
 
 
@@ -225,3 +228,6 @@ def stk(request):
 def transactions_list(request):
     transactions = Transaction.objects.all().order_by('-date')
     return render(request, 'transactions.html', {'transactions': transactions})
+
+def success_page(request):
+    return render(request, 'success.html')
